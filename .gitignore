@@ -1,0 +1,8 @@
+# 로컬 백업 아카이브 / 추출 폴더 (저장소에 올리지 않음)
+*.zip
+vfx (2)/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,19 @@
+{
+  "effect": "explosion",
+  "size": 64,
+  "palette": "classic",
+  "direction": null,
+  "seed": 1234,
+  "originX": null,
+  "originY": null,
+  "particleCount": 32,
+  "burstSpeed": 3,
+  "spreadAngle": 360,
+  "gravity": 0.05,
+  "drag": 0.92,
+  "lifeFrames": 12,
+  "flashFrames": 1,
+  "smokeAmount": 0.4,
+  "frameCount": 8,
+  "customRampColors": ["#FFFFFF", "#FFE860", "#FF9020", "#E03000", "#602020", "#383838"]
+}
