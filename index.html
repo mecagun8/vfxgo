@@ -61,6 +61,16 @@
   #paneHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 6px; }
   #headBtns { display: flex; gap: 5px; flex-shrink: 0; }
   #headBtns button { padding: 4px 8px; font-size: 11px; }
+  /* ---------- pixelfx 옵션 ---------- */
+  #pfxInfo { font-size: 11px; color: var(--dim); line-height: 1.5; margin-bottom: 8px; }
+  #pfxInfo b { color: var(--text); font-weight: normal; }
+  #pfxGroup .note { font-size: 10.5px; color: var(--dim); flex: 1; }
+  #pfxGroup input[type=checkbox] { accent-color: var(--accent); }
+  #pfxOpts .row label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #pfxOpts .swatches { display: flex; flex-wrap: wrap; gap: 2px; flex: 1; }
+  #pfxOpts .swatches input[type=color] { width: 20px; height: 20px; padding: 0; border: 1px solid var(--border); background: none; cursor: pointer; }
+  #pfxOpts input[type=text] { flex: 1; background: var(--panel2); color: var(--text); border: 1px solid var(--border); font-family: inherit; font-size: 11px; padding: 2px 4px; }
+  select:disabled, input:disabled { opacity: .45; }
   /* ---------- 커서 툴팁 ---------- */
   #tip {
     display: none; position: fixed; z-index: 80; pointer-events: none;
@@ -238,6 +248,7 @@
         <option value="afterburn">Afterburner</option>
         <option value="ion">Ion (청백 플라즈마)</option>
         <option value="custom">Custom</option>
+        <option value="pfx" hidden>pixelfx 원본 색</option>
       </select>
     </div>
     <div class="row">
@@ -264,7 +275,18 @@
     <div id="rampPreview"></div>
   </div>
 
-  <div class="group">
+  <div class="group" id="pfxGroup" style="display:none">
+    <h2>pixelfx 옵션</h2>
+    <div id="pfxInfo"></div>
+    <div class="row"><label>라이트 (발광)</label><input type="checkbox" id="pfxLight" checked><span class="note">빛 레이어를 합성</span></div>
+    <div class="row" id="pfxActorRow"><label>캐릭터</label><input type="checkbox" id="pfxActor"><span class="note">스탠드인 캐릭터 함께 그리기</span></div>
+    <div id="pfxOpts"></div>
+    <div class="btnRow" style="margin-top:6px">
+      <button id="btnPfxReset">옵션 기본값으로</button>
+    </div>
+  </div>
+
+  <div class="group" id="particleGroup">
     <h2>파티클 파라미터</h2>
     <div class="row"><label>particleCount</label><input type="range" id="particleCount" min="0" max="128" step="1"><span class="val"></span></div>
     <div class="row"><label>burstSpeed</label><input type="range" id="burstSpeed" min="0.5" max="8" step="0.1"><span class="val"></span></div>
@@ -329,7 +351,7 @@
 
   <div class="group">
     <h2>내보내기</h2>
-    <div class="row"><label>frameCount</label><input type="range" id="frameCount" min="2" max="24" step="1"><span class="val"></span></div>
+    <div class="row"><label>frameCount</label><input type="range" id="frameCount" min="2" max="48" step="1"><span class="val"></span></div>
     <div class="btnRow">
       <button id="btnExportPNG" class="primary">PNG 시트 내보내기</button>
     </div>
@@ -447,7 +469,7 @@
       <td colspan="2">잔연기 양. 파티클이 열을 주입하고 셀룰러 오토마타로 위로 번짐. 0=연기 없음</td>
     </tr>
     <tr>
-      <td class="n">frameCount</td><td class="n">2–24</td>
+      <td class="n">frameCount</td><td class="n">2–48</td>
       <td colspan="2"><b>내보낼 프레임 수 = 미리보기 프레임 수.</b> 시트 가로 길이를 결정</td>
     </tr>
   </table>
@@ -573,10 +595,33 @@ love.graphics.draw(fx.img, fx.quads[i], x, y, 0, 1, 1, 32, 32)</pre>
     <tr><td>루프가 뚝 끊김</td><td>지속형(Thruster·Afterburner·Ion Trail·Hover Jet) 프리셋인지 확인. 1회성은 루프에 부적합</td></tr>
     <tr><td>색이 뭉개져 보임</td><td>게임 쪽에서 <code>nearest</code> 필터 누락. 또는 Custom 램프의 명도 차가 너무 작음</td></tr>
     <tr><td>모양이 마음에 안 듦</td><td>수치를 만지기 전에 <code>🎲 랜덤 시드</code>를 서너 번 눌러보기 — 같은 설정도 시드마다 인상이 크게 다릅니다</td></tr>
+    <tr><td>pixelfx 이펙트가 목록에 없음</td><td><code>vendor/pixelfx.js</code>가 <code>index.html</code> 옆에 있는지 확인. 없으면 기본 프리셋만 보입니다</td></tr>
   </table>
+
+  <h2>10. pixelfx 이펙트 (244종)</h2>
+  <p><a href="https://github.com/mecagun8/pixelfx" style="color:var(--accent)">pixelfx</a>의 이펙트가
+  프리셋 목록 아래 <code>pixelfx · 카테고리</code> 묶음으로 들어 있습니다(불·폭발·물·얼음·번개·근접·마법·상태이상·날씨·UI·픽업·크리처 등).
+  고르면 이펙트를 그리는 코드는 pixelfx가 맡고, <b>팔레트 · 알파 · 후처리 · 시드 · 내보내기는 이 에디터의 것을 그대로</b> 씁니다.</p>
+  <table>
+    <tr><th>항목</th><th>pixelfx에서</th></tr>
+    <tr><td class="n">캔버스</td><td>이펙트 원래 크기(예: 128×128, 300×240)로 고정. 캔버스 크기·이펙트 크기 슬라이더는 꺼집니다</td></tr>
+    <tr><td class="n">팔레트</td><td><code>pixelfx 원본 색</code> = 원래 색 그대로. 다른 팔레트를 고르면 밝기 순으로 6색에 다시 칠하고, 반투명은 디더로 바꿔 6색만 남깁니다</td></tr>
+    <tr><td class="n">pixelfx 옵션</td><td>이펙트마다 다른 옵션(색 램프, 높이, 크기 등)이 자동으로 나타납니다. <code>옵션 기본값으로</code>로 되돌립니다</td></tr>
+    <tr><td class="n">라이트</td><td>발광(빛) 레이어 합성. 끄면 실루엣이 또렷해져 외곽선·AA가 깔끔합니다</td></tr>
+    <tr><td class="n">캐릭터</td><td>화상·빙결 같은 캐릭터용 이펙트에서 스탠드인 캐릭터를 함께 그립니다. 켜면 시트에도 들어갑니다</td></tr>
+    <tr><td class="n">frameCount</td><td>루프는 한 주기를 균등 분할(이음새 없음), 1회성은 처음~끝을 포함해 나눕니다. 고르면 길이에 맞춰 자동 설정</td></tr>
+    <tr><td class="n">방향 / 클릭</td><td>← = 좌우 반전, ↓·↑ = 90° 회전. 미리보기를 클릭하면 이펙트 기준점이 그 자리로 옮겨집니다</td></tr>
+  </table>
+  <div class="tip">
+    pixelfx 이펙트를 고른 상태에서 <code>JSON 저장</code>을 하면 바꾼 pixelfx 옵션까지 함께 저장됩니다.
+    pixelfx는 MIT 라이선스이며 고지 전문은 <code>vendor/pixelfx.LICENSE</code>에 있습니다.
+    pixelfx를 새 버전으로 바꾸려면 <code>node tools/build-pixelfx.mjs &lt;pixelfx 경로&gt;</code>로 다시 묶으세요.
+  </div>
 </div>
 </div>
 
+<!-- pixelfx 이펙트 라이브러리 (선택). 없으면 기본 프리셋만으로 동작한다 -->
+<script src="vendor/pixelfx.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -610,6 +655,7 @@ const PALETTES = {
 let customRampColors = ["#FFFFFF", "#FFE860", "#FF9020", "#E03000", "#602020", "#383838"];
 
 function activeRamp(params) {
+  if (params.palette === "pfx") return (pfxRamp || PALETTES.classic).slice();
   return params.palette === "custom" ? customRampColors.slice() : PALETTES[params.palette];
 }
 /* life(0~1) → 램프 색. life 1=탄생(밝음), 0=소멸(어두움) */
@@ -664,9 +710,9 @@ function postProcess(canvas, p, ramp, frameT) {
   const alphaOn = alphaMode !== "off";
   if (aa <= 0 && glow <= 0 && dith <= 0 && outline === "none" && !alphaOn) return;
 
-  const s = canvas.width;
+  const W = canvas.width, H = canvas.height;
   const ctx = canvas.getContext("2d");
-  const img = ctx.getImageData(0, 0, s, s);
+  const img = ctx.getImageData(0, 0, W, H);
   const d = img.data;
   const rgb = ramp.map(hexToRgb);
   const last = ramp.length - 1;
@@ -674,11 +720,26 @@ function postProcess(canvas, p, ramp, frameT) {
   /* 색 → 램프 인덱스 역참조 (렌더가 램프 색만 쓰므로 정확히 일치) */
   const idxOf = new Map();
   rgb.forEach((c, i) => idxOf.set(c[0] + "," + c[1] + "," + c[2], i));
-  const at = (x, y) => (y * s + x) * 4;
-  const opaque = (x, y) => x >= 0 && x < s && y >= 0 && y < s && d[at(x, y) + 3] > 0;
+  /* pixelfx 원본 색처럼 램프 밖의 색이 섞인 프레임은 밝기가 가장 가까운 램프 단계로 본다.
+   * 기본 프리셋은 램프 색만 쓰므로 fuzzy=false → 기존 동작 그대로 */
+  const fuzzy = isPfx(p.effect);
+  const lum = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  const rampLum = rgb.map((c) => lum(c[0], c[1], c[2]));
+  const look = (r, g, b) => {
+    const key = r + "," + g + "," + b;
+    let k = idxOf.get(key);
+    if (k !== undefined || !fuzzy) return k;
+    const L = lum(r, g, b);
+    let best = Infinity;
+    rampLum.forEach((v, i) => { if (Math.abs(v - L) < best) { best = Math.abs(v - L); k = i; } });
+    idxOf.set(key, k);
+    return k;
+  };
+  const at = (x, y) => (y * W + x) * 4;
+  const opaque = (x, y) => x >= 0 && x < W && y >= 0 && y < H && d[at(x, y) + 3] > 0;
   const rampIdx = (x, y) => {
     const i = at(x, y);
-    const k = idxOf.get(d[i] + "," + d[i + 1] + "," + d[i + 2]);
+    const k = look(d[i], d[i + 1], d[i + 2]);
     return k === undefined ? last : k;
   };
   const put = (x, y, ci) => {
@@ -688,7 +749,7 @@ function postProcess(canvas, p, ramp, frameT) {
   /* 원본 스냅샷 — 패스끼리 서로의 결과를 다시 읽지 않도록 */
   const snap = new Uint8ClampedArray(d);
   const wasOpaque = (x, y) =>
-    x >= 0 && x < s && y >= 0 && y < s && snap[(y * s + x) * 4 + 3] > 0;
+    x >= 0 && x < W && y >= 0 && y < H && snap[(y * W + x) * 4 + 3] > 0;
 
   /* ---- 1) 안티앨리어싱 ----
    * 픽셀아트식 수동 AA. 계단이 눈에 띄는 곳 세 군데를 모두 다룬다.
@@ -701,11 +762,11 @@ function postProcess(canvas, p, ramp, frameT) {
     const step = Math.max(1, Math.round(3 - aa * 2));
     const snapIdx = (x, y) => {
       const i = at(x, y);
-      const k = idxOf.get(snap[i] + "," + snap[i + 1] + "," + snap[i + 2]);
+      const k = look(snap[i], snap[i + 1], snap[i + 2]);
       return k === undefined ? last : k;
     };
-    for (let y = 0; y < s; y++) {
-      for (let x = 0; x < s; x++) {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
         const L = wasOpaque(x - 1, y), R = wasOpaque(x + 1, y);
         const U = wasOpaque(x, y - 1), D = wasOpaque(x, y + 1);
 
@@ -752,24 +813,24 @@ function postProcess(canvas, p, ramp, frameT) {
   if (glow > 0) {
     const radius = 1 + Math.round(glow * 2);          // 1~3px
     const cur = new Uint8ClampedArray(d);             // AA 결과까지 반영된 상태
-    const isCur = (x, y) => cur[(y * s + x) * 4 + 3] > 0;
-    for (let y = 0; y < s; y++) {
-      for (let x = 0; x < s; x++) {
+    const isCur = (x, y) => cur[(y * W + x) * 4 + 3] > 0;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
         if (!isCur(x, y)) continue;
-        const i = (y * s + x) * 4;
-        const k = idxOf.get(cur[i] + "," + cur[i + 1] + "," + cur[i + 2]);
+        const i = (y * W + x) * 4;
+        const k = look(cur[i], cur[i + 1], cur[i + 2]);
         if (k === undefined || k > 1) continue;       // 밝은 코어(램프 0~1)만 발광
         for (let dy = -radius; dy <= radius; dy++) {
           for (let dx = -radius; dx <= radius; dx++) {
             const nx = x + dx, ny = y + dy;
-            if (nx < 0 || nx >= s || ny < 0 || ny >= s) continue;
+            if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
             if (isCur(nx, ny)) continue;              // 이미 그림이 있으면 덮지 않음
             const dist = Math.max(Math.abs(dx), Math.abs(dy));
             if (dist === 0 || dist > radius) continue;
             const ci = dist === 1 ? last - 1 : last;  // 가까우면 조금 밝게
             const j = at(nx, ny);
             /* 더 밝은 글로우가 이미 있으면 유지 */
-            if (d[j + 3] > 0 && (idxOf.get(d[j] + "," + d[j + 1] + "," + d[j + 2]) ?? last) <= ci) continue;
+            if (d[j + 3] > 0 && (look(d[j], d[j + 1], d[j + 2]) ?? last) <= ci) continue;
             put(nx, ny, ci);
           }
         }
@@ -780,10 +841,10 @@ function postProcess(canvas, p, ramp, frameT) {
   /* ---- 3) 외곽선: 실루엣 바깥 테두리를 한 겹 두른다 ---- */
   if (outline !== "none") {
     const cur = new Uint8ClampedArray(d);
-    const isCur = (x, y) => x >= 0 && x < s && y >= 0 && y < s && cur[(y * s + x) * 4 + 3] > 0;
+    const isCur = (x, y) => x >= 0 && x < W && y >= 0 && y < H && cur[(y * W + x) * 4 + 3] > 0;
     const oc = outline === "black" ? [0, 0, 0] : rgb[last];
-    for (let y = 0; y < s; y++) {
-      for (let x = 0; x < s; x++) {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
         if (isCur(x, y)) continue;
         if (!(isCur(x - 1, y) || isCur(x + 1, y) || isCur(x, y - 1) || isCur(x, y + 1))) continue;
         const i = at(x, y);
@@ -796,19 +857,19 @@ function postProcess(canvas, p, ramp, frameT) {
   if (dith > 0) {
     const cur = new Uint8ClampedArray(d);
     const idxCur = (x, y) => {
-      const i = (y * s + x) * 4;
+      const i = (y * W + x) * 4;
       if (cur[i + 3] === 0) return -1;
-      const k = idxOf.get(cur[i] + "," + cur[i + 1] + "," + cur[i + 2]);
+      const k = look(cur[i], cur[i + 1], cur[i + 2]);
       return k === undefined ? -1 : k;
     };
-    for (let y = 0; y < s; y++) {
-      for (let x = 0; x < s; x++) {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
         const me = idxCur(x, y);
         if (me < 0 || me >= last) continue;
         /* 한 단계 어두운 이웃이 있으면 = 밴드 경계 */
         const touching =
-          idxCur(Math.max(0, x - 1), y) === me + 1 || idxCur(Math.min(s - 1, x + 1), y) === me + 1 ||
-          idxCur(x, Math.max(0, y - 1)) === me + 1 || idxCur(x, Math.min(s - 1, y + 1)) === me + 1;
+          idxCur(Math.max(0, x - 1), y) === me + 1 || idxCur(Math.min(W - 1, x + 1), y) === me + 1 ||
+          idxCur(x, Math.max(0, y - 1)) === me + 1 || idxCur(x, Math.min(H - 1, y + 1)) === me + 1;
         if (!touching) continue;
         if (BAYER4[y & 3][x & 3] / 16 < dith * 0.85) put(x, y, me + 1);
       }
@@ -824,11 +885,11 @@ function postProcess(canvas, p, ramp, frameT) {
     /* 프레임 커브 — 이 프레임 전체에 곱해지는 배율 */
     const fmul = frameT == null ? 1 : alphaEnvelope(frameT, p.alphaCurve, p.fadeOut || 0);
     const cur = new Uint8ClampedArray(d);
-    for (let y = 0; y < s; y++) {
-      for (let x = 0; x < s; x++) {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
         const i = at(x, y);
         if (cur[i + 3] === 0) continue;
-        const k = idxOf.get(cur[i] + "," + cur[i + 1] + "," + cur[i + 2]);
+        const k = look(cur[i], cur[i + 1], cur[i + 2]);
         const perColor = k === undefined ? 1 : (ra[k] == null ? 1 : ra[k]);
         const a = Math.min(1, Math.max(0, perColor * fmul));
         if (alphaMode === "dither") {
@@ -952,6 +1013,208 @@ const params = {
   /* 알파 — 램프 색별 불투명도 + 프레임 진행에 따른 꼬리 페이드 */
   alphaMode: "off", alphaCurve: "out", fadeOut: 0, rampAlpha: [1, 1, 1, 1, 1, 1],
 };
+
+/* =====================================================================
+ * pixelfx 연동 — vendor/pixelfx.js(전역 PixelFX)가 있으면 244종 이펙트를
+ * 프레임 생성기로 쓴다. 구운 프레임은 기본 프리셋과 똑같이 팔레트 · 후처리 ·
+ * 알파 · 내보내기 파이프라인을 탄다. 효과 값은 "pfx:<카테고리>/<이름>".
+ * ===================================================================== */
+const PFX = (typeof window !== "undefined" && window.PixelFX) || null;
+function isPfx(effect) { return typeof effect === "string" && effect.startsWith("pfx:"); }
+function pfxMod(effect) { return PFX && isPfx(effect) ? PFX.effects[effect.slice(4)] || null : null; }
+params.pfxLight = true;    // 빛(light) 레이어 합성
+params.pfxActor = false;   // 스탠드인 캐릭터를 함께 그릴지 (캐릭터가 있는 이펙트만)
+let pfxOptions = {};       // 사용자가 바꾼 이펙트 옵션 (기본값과 다른 것만)
+let pfxRamp = null;        // "pixelfx 원본 색" 팔레트일 때 프레임에서 뽑은 6단계 램프
+
+/** 프레임 크기: pixelfx는 이펙트 원래 크기(직사각형), 기본 프리셋은 정사각 캔버스 */
+function frameDims(p = params) {
+  const m = pfxMod(p.effect);
+  return m ? { w: m.meta.size[0], h: m.meta.size[1] } : { w: p.size, h: p.size };
+}
+function effectLabel(p = params) {
+  return isPfx(p.effect) ? p.effect.slice(4).replace(/\//g, "_") : EFFECTS[p.effect].label;
+}
+const toHex2 = (v) => v.toString(16).padStart(2, "0").toUpperCase();
+const lum255 = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+/** 프레임들에 실제로 쓰인 색을 밝기 순으로 세워 6단계 램프(밝음→어두움)를 만든다 */
+function deriveRamp(list) {
+  const count = new Map();
+  for (const d of list) {
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 128) continue;
+      const k = (d[i] << 16) | (d[i + 1] << 8) | d[i + 2];
+      count.set(k, (count.get(k) || 0) + 1);
+    }
+  }
+  if (count.size === 0) return PALETTES.classic.slice();
+  const cols = [...count.entries()]
+    .map(([k, n]) => ({ r: k >> 16, g: (k >> 8) & 255, b: k & 255, n }))
+    .sort((a, b) => lum255(b.r, b.g, b.b) - lum255(a.r, a.g, a.b));
+  const total = cols.reduce((s, c) => s + c.n, 0), out = [];
+  let acc = 0, ci = 0;
+  for (let q = 0; q < 6; q++) {
+    const want = ((q + 0.5) / 6) * total;
+    while (ci < cols.length - 1 && acc + cols[ci].n < want) acc += cols[ci++].n;
+    const c = cols[ci];
+    out.push("#" + toHex2(c.r) + toHex2(c.g) + toHex2(c.b));
+  }
+  return out;
+}
+
+/** 원본 색을 고른 팔레트 램프로 바꾼다: 전체 프레임의 밝기 범위를 램프 6단계에 고르게 나눈다.
+ *  반투명(연기·발광)은 Bayer 디더로 불투명/투명을 나눠 저장 색이 램프 6색 밖으로 새지 않게 한다
+ *  (캔버스는 반투명 색을 반올림해 저장하므로 그대로 두면 색이 흔들린다). */
+function remapToRamp(list, ramp, w) {
+  const rgb = ramp.map(hexToRgb), n = rgb.length;
+  let lo = Infinity, hi = -Infinity;
+  for (const d of list) {
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] === 0) continue;
+      const L = lum255(d[i], d[i + 1], d[i + 2]);
+      if (L < lo) lo = L;
+      if (L > hi) hi = L;
+    }
+  }
+  const span = Math.max(1, hi - lo);
+  for (const d of list) {
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] === 0) continue;
+      const t = (lum255(d[i], d[i + 1], d[i + 2]) - lo) / span;   // 0=가장 어두움, 1=가장 밝음
+      const c = rgb[Math.min(n - 1, Math.max(0, Math.round((1 - t) * (n - 1))))];
+      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2];
+      if (d[i + 3] < 255) {
+        const px = (i >> 2) % w, py = Math.floor((i >> 2) / w);
+        d[i + 3] = BAYER4[py & 3][px & 3] / 16 < d[i + 3] / 255 ? 255 : 0;
+      }
+    }
+  }
+}
+
+/** pixelfx 이펙트를 frameCount장으로 굽는다. 루프는 한 주기를 균등 분할(이음새 없음),
+ *  1회성은 처음과 끝 프레임을 모두 포함한다. 시드가 같으면 결과도 같다. */
+function bakePfxFrames(p) {
+  const mod = pfxMod(p.effect), meta = mod.meta;
+  const { w, h } = frameDims(p), fc = p.frameCount, D = meta.duration || 1;
+  const x = p.originX == null ? meta.origin[0] : p.originX;
+  const y = p.originY == null ? meta.origin[1] : p.originY;
+  const o = { ...pfxOptions, x, y, seed: p.seed };
+  if (p.direction === 180) o.flip = true;
+  else if (p.direction === 90) o.angle = Math.PI / 2;
+  else if (p.direction === 270) o.angle = -Math.PI / 2;
+  const inst = PFX.createFx(mod, o);
+  const actor = p.pfxActor && meta.actor ? inst.options.actor || PFX.stockActor() : null;
+  const frame = PFX.createFrame(w, h);
+  const list = [];
+  let t = 0;
+  for (let i = 0; i < fc; i++) {
+    const target = meta.loop ? (i * D) / fc : fc > 1 ? (i * D) / (fc - 1) : D;
+    if (target > t) { inst.update(target - t); t = target; }
+    PFX.clearFrame(frame);
+    if (actor) {
+      inst.draw(frame, "back");
+      const tt = meta.loop ? inst.t % D : Math.min(inst.t, D);
+      PFX.drawActor(PFX.painterFor(frame).place(x, y, !!o.flip), actor, PFX.actorAlphaOf(mod, tt, inst.options));
+      inst.draw(frame, "front");
+    } else {
+      inst.draw(frame);
+    }
+    list.push(PFX.composite(frame, new Uint8ClampedArray(w * h * 4), null, p.pfxLight ? 1 : 0));
+  }
+
+  let ramp;
+  if (p.palette === "pfx") {
+    pfxRamp = deriveRamp(list);
+    ramp = pfxRamp;
+  } else {
+    ramp = activeRamp(p);
+    remapToRamp(list, ramp, w);
+  }
+  return list.map((d, i) => {
+    const cap = document.createElement("canvas");
+    cap.width = w; cap.height = h;
+    cap.getContext("2d").putImageData(new ImageData(d, w, h), 0, 0);
+    postProcess(cap, p, ramp, fc > 1 ? i / (fc - 1) : 1);
+    return cap;
+  });
+}
+
+/* ---------- pixelfx 옵션 UI: 이펙트마다 다른 옵션을 자동으로 컨트롤로 만든다 ---------- */
+const isHexColor = (v) => typeof v === "string" && /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(v);
+const fullHex = (v) => v.length === 4 ? "#" + v[1] + v[1] + v[2] + v[2] + v[3] + v[3] : v;
+const optLabel = (k) => k.replace(/([a-z])([A-Z])/g, "$1 $2");
+
+function numberRange(def) {
+  if (def === 0) return { min: 0, max: 1, step: 0.01 };
+  const a = Math.abs(def);
+  const isInt = Number.isInteger(def) && a >= 2;
+  const max = isInt ? Math.max(a * 3, a + 4) : +(a * 3).toFixed(3);
+  const min = def < 0 ? -max : 0;
+  const step = isInt ? 1 : +(Math.max(0.001, (max - min) / 200)).toPrecision(2);
+  return { min, max, step };
+}
+
+function buildPfxUI() {
+  const mod = pfxMod(params.effect), box = document.getElementById("pfxOpts");
+  box.innerHTML = "";
+  if (!mod) return;
+  const meta = mod.meta, defs = meta.options || {};
+  const D = meta.duration || 1;
+  document.getElementById("pfxInfo").innerHTML =
+    `<b>${meta.name}</b> · ${meta.size[0]}×${meta.size[1]}px · ${D}s · ${meta.loop ? "루프" : "1회성"}<br>${meta.desc || ""}`;
+  document.getElementById("pfxActorRow").style.display = meta.actor ? "flex" : "none";
+
+  for (const [k, def] of Object.entries(defs)) {
+    if (k === "seed") continue;   // 시드는 공용 시드 칸을 쓴다
+    const cur = k in pfxOptions ? pfxOptions[k] : def;
+    const row = document.createElement("div");
+    row.className = "row";
+    const lab = document.createElement("label");
+    lab.textContent = optLabel(k);
+    lab.title = k;
+    row.appendChild(lab);
+    const set = (v) => { pfxOptions[k] = v; startSim(); };
+
+    if (typeof def === "number") {
+      const r = numberRange(def), inp = document.createElement("input"), val = document.createElement("span");
+      inp.type = "range"; inp.min = r.min; inp.max = r.max; inp.step = r.step; inp.value = cur;
+      val.className = "val"; val.textContent = cur;
+      inp.addEventListener("input", () => { val.textContent = inp.value; set(parseFloat(inp.value)); });
+      row.append(inp, val);
+    } else if (typeof def === "boolean") {
+      const inp = document.createElement("input");
+      inp.type = "checkbox"; inp.checked = !!cur;
+      inp.addEventListener("change", () => set(inp.checked));
+      row.appendChild(inp);
+    } else if (isHexColor(def)) {
+      const inp = document.createElement("input");
+      inp.type = "color"; inp.value = fullHex(cur);
+      inp.addEventListener("input", () => set(inp.value));
+      row.appendChild(inp);
+    } else if (Array.isArray(def) && def.length && def.every(isHexColor)) {
+      /* 색 램프: 칸마다 색상 피커. pixelfx 램프는 어두움→밝음 순서 */
+      const sw = document.createElement("div");
+      sw.className = "swatches";
+      const arr = (Array.isArray(cur) ? cur : def).slice();
+      arr.forEach((c, i) => {
+        const inp = document.createElement("input");
+        inp.type = "color"; inp.value = fullHex(c);
+        inp.addEventListener("input", () => { arr[i] = inp.value; set(arr.slice()); });
+        sw.appendChild(inp);
+      });
+      row.appendChild(sw);
+    } else if (typeof def === "string") {
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.value = cur;
+      inp.addEventListener("change", () => set(inp.value));
+      row.appendChild(inp);
+    } else {
+      continue;   // 숫자 배열 같은 구조형 옵션은 편집하지 않는다
+    }
+    box.appendChild(row);
+  }
+}
 
 /* =====================================================================
  * 시뮬레이션 — 미리보기와 내보내기가 같은 코드 경로를 탄다
@@ -1236,11 +1499,16 @@ const dctx = display.getContext("2d");
 let scale = 8;
 
 function setupCanvases() {
-  const s = params.size;
-  /* 정수배: 512px 목표에 가장 가까운 정수 배율 */
-  scale = Math.max(1, Math.floor(512 / s));
-  display.width = s * scale;
-  display.height = s * scale;
+  const { w, h } = frameDims();
+  /* 정수배: 기본 프리셋은 512px 목표, pixelfx(최대 400px대)는 미리보기 칸에 맞는 가장 큰 정수배 */
+  let target = 512;
+  if (isPfx(params.effect)) {
+    const pane = document.getElementById("previewPane");
+    target = Math.max(256, Math.min(pane.clientWidth - 40, pane.clientHeight - 90));
+  }
+  scale = Math.max(1, Math.floor(target / Math.max(w, h)));
+  display.width = w * scale;
+  display.height = h * scale;
   dctx.imageSmoothingEnabled = false;
 }
 
@@ -1271,6 +1539,7 @@ function computeCapturePlan(p) {
 /* 시드 고정 시뮬레이션을 처음부터 실행하며 frameCount장의 프레임을 굽는다.
  * 미리보기와 내보내기가 이 함수 하나를 공유 → 결과가 항상 동일 */
 function bakeFrames(p) {
+  if (pfxMod(p.effect)) return bakePfxFrames(p);
   const { total, captureAt } = computeCapturePlan(p);
   const fc = p.frameCount, s = p.size;
   const ex = new Sim(p);
@@ -1303,6 +1572,7 @@ function startSim() {
   bakedFrames = bakeFrames(params);
   playIdx = 0;
   playing = true;
+  if (params.palette === "pfx") updateRampPreview();   // 원본 색 램프는 구울 때마다 다시 뽑힌다
   updateAlphaChart();   // 파라미터가 바뀔 때마다 알파 상태 표시도 최신으로
 }
 
@@ -1344,8 +1614,59 @@ for (const id of SLIDER_IDS) {
 }
 
 /* 이펙트 프리셋: 기본값 로드 */
+/* 기본 프리셋 / pixelfx 중 무엇이 선택됐는지에 따라 패널을 바꾼다 */
+function syncModeUI() {
+  const pfx = isPfx(params.effect);
+  $("particleGroup").style.display = pfx ? "none" : "";
+  $("pfxGroup").style.display = pfx ? "" : "none";
+  $("canvasSize").disabled = pfx;
+  $("effectScale").disabled = pfx;
+  $("palette").querySelector('option[value="pfx"]').hidden = !pfx;
+  $("pfxLight").checked = params.pfxLight;
+  $("pfxActor").checked = params.pfxActor;
+  if (pfx) buildPfxUI();
+}
+function setSlider(id, v) {
+  params[id] = v;
+  const el = $(id);
+  el.value = v;
+  const valSpan = el.parentElement.querySelector(".val");
+  if (valSpan) valSpan.textContent = v;
+}
+
+/* pixelfx 이펙트 선택: 원래 크기 · 원본 색 · 길이에 맞춘 프레임 수와 재생 속도로 시작 */
+function selectPfx() {
+  const meta = pfxMod(params.effect).meta, D = meta.duration || 1;
+  pfxOptions = {};
+  params.originX = params.originY = null;
+  params.direction = null;
+  $("direction").value = "";
+  params.palette = "pfx";
+  $("palette").value = "pfx";
+  params.outline = "none";
+  $("outline").value = "none";
+  for (const k of ["aaAmount", "glowAmount", "ditherAmount"]) setSlider(k, 0);
+  const fc = Math.max(4, Math.min(48, Math.round(D * 10)));
+  setSlider("frameCount", fc);
+  params.fps = Math.max(1, Math.min(30, Math.round(fc / D)));
+  $("fps").value = params.fps;
+  $("fpsVal").textContent = params.fps + " fps";
+  syncModeUI();
+  syncCustomUI();
+  setupCanvases();
+  startSim();
+  updateRampPreview();   // 원본 색 램프는 프레임을 구운 뒤에 정해진다
+  refreshTip();
+}
+
 $("effectPreset").addEventListener("change", () => {
   params.effect = $("effectPreset").value;
+  if (isPfx(params.effect)) { selectPfx(); return; }
+  if (params.palette === "pfx") { params.palette = "classic"; $("palette").value = "classic"; }
+  /* pixelfx에서 넘어오면 클릭 위치가 정사각 캔버스 밖일 수 있다 */
+  if (params.originX >= params.size || params.originY >= params.size) params.originX = params.originY = null;
+  syncModeUI();
+  setupCanvases();
   /* 프리셋마다 후처리 기본값을 명시하므로, 지정 없는 프리셋은 0으로 되돌린다 */
   const POST_OFF = { aaAmount: 0, glowAmount: 0, ditherAmount: 0, outline: "none" };
   const d = { ...POST_OFF, ...EFFECTS[params.effect].defaults };
@@ -1588,18 +1909,24 @@ display.addEventListener("click", (e) => {
  * ===================================================================== */
 const statusEl = $("status");
 
+/* 시트 파일명: 기본 프리셋은 기존 규칙(64px), pixelfx는 직사각형이라 가로x세로 */
+function sheetName() {
+  const { w, h } = frameDims(), size = w === h ? `${w}px` : `${w}x${h}`;
+  return `${effectLabel()}_${size}_${params.frameCount}f_seed${params.seed}.png`;
+}
+
 function exportSheet() {
-  const s = params.size, fc = params.frameCount;
+  const { w, h } = frameDims(), fc = params.frameCount;
   const strip = document.createElement("canvas");
-  strip.width = s * fc; strip.height = s;
+  strip.width = w * fc; strip.height = h;
   const stripCtx = strip.getContext("2d");
   stripCtx.imageSmoothingEnabled = false;
 
   /* 미리보기와 같은 bakeFrames 경로 → 화면에서 본 그대로 시트가 나온다 */
   const frames = bakeFrames(params);
-  frames.forEach((fr, i) => stripCtx.drawImage(fr, i * s, 0));
+  frames.forEach((fr, i) => stripCtx.drawImage(fr, i * w, 0));
 
-  const name = `${EFFECTS[params.effect].label}_${s}px_${fc}f_seed${params.seed}.png`;
+  const name = sheetName();
   strip.toBlob((blob) => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -1614,10 +1941,11 @@ $("btnExportPNG").addEventListener("click", exportSheet);
 /* ---------- JSON 프리셋 저장/불러오기 ---------- */
 $("btnExportJSON").addEventListener("click", () => {
   const data = { ...params, customRampColors };
+  if (isPfx(params.effect)) data.pfxOptions = pfxOptions;
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${EFFECTS[params.effect].label}_preset.json`;
+  a.download = `${effectLabel()}_preset.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   statusEl.textContent = "JSON 프리셋 저장됨";
@@ -1633,9 +1961,14 @@ $("jsonFile").addEventListener("change", (e) => {
       if (Array.isArray(data.customRampColors) && data.customRampColors.length === 6) {
         customRampColors = data.customRampColors.slice();
       }
+      if (isPfx(data.effect) && !pfxMod(data.effect)) {
+        throw new Error(`pixelfx 이펙트 ${data.effect.slice(4)}를 찾을 수 없습니다 (vendor/pixelfx.js 확인)`);
+      }
       for (const k in params) {
         if (k in data) params[k] = data[k];
       }
+      pfxOptions = isPfx(params.effect) && data.pfxOptions ? { ...data.pfxOptions } : {};
+      if (!isPfx(params.effect) && params.palette === "pfx") params.palette = "classic";
       /* UI 동기화 */
       $("effectPreset").value = params.effect;
       $("canvasSize").value = params.size;
@@ -1651,6 +1984,7 @@ $("jsonFile").addEventListener("change", (e) => {
       }
       syncAlphaCols();
       $("seedInput").value = params.seed;
+      syncModeUI();
       syncCustomUI();
       for (const id of SLIDER_IDS) {
         $(id).value = params[id];
@@ -1670,8 +2004,8 @@ $("jsonFile").addEventListener("change", (e) => {
 
 /* ---------- Lua 로더 스니펫 ---------- */
 function luaSnippet() {
-  return `-- explosion.lua : 1열 스트립 시트 로더
--- 사용 예: local anim = Anim.load("${EFFECTS[params.effect].label}_${params.size}px_${params.frameCount}f_seed${params.seed}.png", ${params.size}, ${params.size})
+  return `-- ${effectLabel()}.lua : 1열 스트립 시트 로더
+-- 사용 예: local anim = Anim.load("${sheetName()}", ${frameDims().w}, ${frameDims().h})
 local Anim = {}
 function Anim.load(path, frameW, frameH)
   local img = love.graphics.newImage(path)
@@ -1706,7 +2040,7 @@ $("btnLua").addEventListener("click", () => {
  * ===================================================================== */
 function isFaceBased() {
   const e = EFFECTS[params.effect];
-  return !!(e.flame || e.ring);
+  return !!(e && (e.flame || e.ring));
 }
 /* d가 함수면 현재 프리셋 기준으로 호출해 문맥에 맞는 설명을 만든다 */
 const TIPS = {
@@ -1721,7 +2055,17 @@ const TIPS = {
            + `키울 때는 캔버스 크기(현재 ${params.size}px)도 함께 올려야 잘리지 않습니다. `
            + `프리셋을 바꿔도 이 값은 유지됩니다.` },
   palette: { t: "팔레트",
-    d: "수명에 따라 건너뛸 색상 램프. 색을 부드럽게 섞지 않고 단계별로 전환하는 것이 픽셀아트 룩의 핵심입니다. Custom을 고르면 6칸을 직접 지정합니다." },
+    d: () => isPfx(params.effect)
+      ? "pixelfx 원본 색은 이펙트의 원래 색을 그대로 씁니다. 다른 팔레트를 고르면 밝기 순으로 그 6색에 다시 칠하고, 반투명 부분은 디더로 바꿔 6색만 남깁니다."
+      : "수명에 따라 건너뛸 색상 램프. 색을 부드럽게 섞지 않고 단계별로 전환하는 것이 픽셀아트 룩의 핵심입니다. Custom을 고르면 6칸을 직접 지정합니다." },
+  pfxLight: { t: "라이트 (발광)",
+    d: "pixelfx 이펙트의 빛 레이어(불빛, 마법 광원의 번짐)를 합성합니다. 끄면 실루엣만 남아 외곽선·AA가 또렷해집니다." },
+  pfxActor: { t: "캐릭터",
+    d: "화상·빙결·독처럼 캐릭터 위에 쓰는 이펙트에서 스탠드인 캐릭터를 함께 그립니다. 켜면 내보내는 시트에도 캐릭터가 들어가니, 게임에 얹을 시트는 끄고 내보내세요." },
+  pfxOpts: { t: "pixelfx 옵션",
+    d: "이 이펙트가 가진 옵션입니다. 색 램프는 칸마다 색을 바꿀 수 있고(어두움→밝음 순), 숫자는 기본값의 0~3배 범위에서 조절합니다. 색 램프를 바꿨다면 팔레트를 'pixelfx 원본 색'으로 두어야 그대로 보입니다." },
+  btnPfxReset: { t: "옵션 기본값으로",
+    d: "pixelfx 옵션을 이 이펙트의 원래 값으로 되돌립니다. 팔레트·후처리 설정은 그대로 둡니다." },
   direction: { t: "분사 방향",
     d: "이펙트가 뻗어나가는 방향. 종스크롤 슈팅은 ↓, 횡스크롤(기수 우향)은 ←를 쓰세요. '프리셋 기본'은 각 프리셋의 원래 각도를 씁니다." },
   particleCount: { t: "particleCount", r: "0 ~ 128",
@@ -1752,7 +2096,7 @@ const TIPS = {
     d: "시작할 때 중앙에 터지는 흰 원의 지속 프레임 수. 타격감을 만드는 핵심 요소이며, 0이면 사용하지 않습니다." },
   smokeAmount: { t: "smokeAmount", r: "0 ~ 1",
     d: "잔연기의 양. 입자가 열을 뿌리면 셀룰러 오토마타가 그것을 위로 번지게 만듭니다. 0이면 연기가 없습니다." },
-  frameCount: { t: "frameCount", r: "2 ~ 24",
+  frameCount: { t: "frameCount", r: "2 ~ 48",
     d: "내보낼 프레임 수이자 미리보기 재생 프레임 수. 시트의 가로 길이를 결정합니다. 고전 게임식 루프는 4프레임이면 충분합니다." },
   btnCopyPalette: { t: "현재 팔레트를 Custom으로 복사",
     d: "지금 선택된 팔레트의 6색을 Custom 칸으로 그대로 가져옵니다. 마음에 드는 기본 팔레트에서 출발해 몇 칸만 손보고 싶을 때 쓰세요. 처음부터 색을 다 고를 필요가 없습니다." },
@@ -1884,7 +2228,32 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") manualBack.classList.remove("open");
 });
 
+/* ---------- pixelfx: 프리셋 목록 채우기 + 옵션 패널 배선 ---------- */
+if (PFX) {
+  const sel = $("effectPreset");
+  const byCat = {};
+  for (const id of Object.keys(PFX.effects)) (byCat[id.split("/")[0]] ||= []).push(id);
+  for (const c of PFX.categories) {
+    const ids = byCat[c.id];
+    if (!ids) continue;
+    const g = document.createElement("optgroup");
+    g.label = `pixelfx · ${c.name} (${ids.length})`;
+    for (const id of ids) {
+      const o = document.createElement("option");
+      o.value = "pfx:" + id;
+      o.textContent = PFX.effects[id].meta.name || id;
+      g.appendChild(o);
+    }
+    sel.appendChild(g);
+  }
+  $("pfxLight").addEventListener("change", () => { params.pfxLight = $("pfxLight").checked; startSim(); });
+  $("pfxActor").addEventListener("change", () => { params.pfxActor = $("pfxActor").checked; startSim(); });
+  $("btnPfxReset").addEventListener("click", () => { pfxOptions = {}; buildPfxUI(); startSim(); });
+  window.addEventListener("resize", () => { if (isPfx(params.effect)) setupCanvases(); });
+}   // 번들이 없으면 pixelfx 패널은 숨겨진 채로, 기본 프리셋만 쓴다
+
 /* ---------- 초기화 ---------- */
+syncModeUI();
 setupCanvases();
 syncCustomUI();
 updateRampPreview();
