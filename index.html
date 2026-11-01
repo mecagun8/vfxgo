@@ -617,6 +617,150 @@ love.graphics.draw(fx.img, fx.quads[i], x, y, 0, 1, 1, 32, 32)</pre>
     pixelfx는 MIT 라이선스이며 고지 전문은 <code>vendor/pixelfx.LICENSE</code>에 있습니다.
     pixelfx를 새 버전으로 바꾸려면 <code>node tools/build-pixelfx.mjs &lt;pixelfx 경로&gt;</code>로 다시 묶으세요.
   </div>
+
+  <h2>11. pixelfx 이펙트의 구성과 조립</h2>
+  <p>pixelfx 이펙트는 이 에디터의 기본 프리셋처럼 <b>슬라이더 몇 개로 움직이는 시뮬레이터 하나</b>가 아닙니다.
+  이펙트마다 <b>부품을 골라 시간표에 맞춰 배치한 레시피 파일</b>입니다. 그래서 10장의 pixelfx 옵션에는
+  색·크기 같은 몇 가지만 보이고 부품별 슬라이더는 없습니다. 이 장은 그 레시피가 어떻게 생겼는지,
+  처음 만드는 사람 기준으로 설명합니다. (출처: pixelfx의 <code>docs/AUTHORING.md</code>와 기준 예제 <code>explosions/small-explosion.js</code>)</p>
+
+  <h3>전체 구조: 5개 층</h3>
+  <pre>이펙트 파일 1개 (예: explosions/small-explosion.js)
+├─ ① 명세서(meta)       크기 · 기준점 · 길이 · 루프 여부 · 바꿀 수 있는 옵션
+├─ ② 그리기 방식         순수형 또는 시뮬레이션형 중 하나
+├─ ③ 부품                파티클 · 파편 · 조명 · 잔불 · 도형
+├─ ④ 출력 칸             색 버퍼 + 빛 버퍼, 뒤 레이어 + 앞 레이어
+└─ ⑤ (선택) 연기와 합성   act(캐릭터 동작), chain(이펙트끼리 잇기)</pre>
+
+  <h3>① 명세서 (meta)</h3>
+  <p>이펙트의 신분증입니다. 그리는 코드는 없습니다.</p>
+  <table>
+    <tr><th>항목</th><th>뜻</th><th>예 (폭발)</th></tr>
+    <tr><td class="n">size</td><td>캔버스 크기(px)</td><td>300×240</td></tr>
+    <tr><td class="n">origin</td><td>기준점 (0,0)이 캔버스의 어디인지</td><td>(150, 196) = 폭발이 닿는 바닥</td></tr>
+    <tr><td class="n">duration</td><td>길이(초)</td><td>5.4초 — 연기가 다 걷힐 때까지</td></tr>
+    <tr><td class="n">loop</td><td>반복 여부</td><td>false (1회성)</td></tr>
+    <tr><td class="n">options</td><td>바깥에서 바꿀 수 있는 값 (= 10장의 pixelfx 옵션)</td><td>불꽃 색 램프, 돌 색, 크기 배율, 시드</td></tr>
+  </table>
+  <ul>
+    <li>좌표는 <b>기준점 중심</b>: x는 오른쪽, y는 아래가 +, 1단위 = 1px. 바닥은 y = 0.</li>
+    <li>방향이 있는 이펙트는 <b>오른쪽을 향하게</b> 그립니다. 반전·회전은 바깥에서 합니다 (이 에디터의 <code>방향</code>).</li>
+    <li>크기 기준은 <b>24×38px 캐릭터</b>. 모든 이펙트를 이 캐릭터 옆에 놓인다고 보고 그립니다.</li>
+  </ul>
+
+  <h3>② 그리기 방식 2가지</h3>
+  <table>
+    <tr><th>방식</th><th>원리</th><th>쓰임</th></tr>
+    <tr><td class="n">순수형</td><td>시간 t만 보고 그 순간의 그림을 계산. 이전 프레임을 기억하지 않음</td><td>루프(횃불·오라·포털·폭포·크리처). 끝과 처음이 정확히 이어짐</td></tr>
+    <tr><td class="n">시뮬레이션형</td><td>처음에 입자를 뿌려 두고 1초에 120번 물리 계산</td><td>1회성(폭발·타격·마법). 튀고 구르고 식는 움직임</td></tr>
+  </table>
+
+  <h3>③ 부품 — 재료 상자</h3>
+  <p><b>파티클 12종</b> — 작은 입자를 대량으로 뿌립니다.</p>
+  <table>
+    <tr><th>종류</th><th>생김새 / 움직임</th></tr>
+    <tr><td class="n">SPARK 스파크</td><td>속도만큼 늘어나는 2색 줄. 떨어지고 바닥에서 튀며 빛남</td></tr>
+    <tr><td class="n">MOTE 티끌</td><td>어두운 꼬리가 달린 줄, 디더로 사라짐</td></tr>
+    <tr><td class="n">STREAK 집속선</td><td>점점 빨라지는 점선 — 에너지가 모이는 느낌</td></tr>
+    <tr><td class="n">FLAKE 부스러기</td><td>떠다니는 점, 크면 십자</td></tr>
+    <tr><td class="n">VAPOUR 증기</td><td>반투명하게 부풀며 옅어지는 김</td></tr>
+    <tr><td class="n">DUST 먼지</td><td>증기보다 진한 먼지 뭉치</td></tr>
+    <tr><td class="n">SMOKE 연기</td><td>부드러운 원 3개, 윗면이 밝고 흔들리며 상승</td></tr>
+    <tr><td class="n">FIRE 불덩이</td><td>올라가며 불꽃 램프를 따라 식음. 옵션을 주면 식은 뒤 연기로 바뀜</td></tr>
+    <tr><td class="n">BRAND 불붙은 파편</td><td>불꼬리를 끌고 날아가 떨어진 자리에 잔불을 남김</td></tr>
+    <tr><td class="n">GRIT 자갈</td><td>떨어져 한 번 튀고 멈춤</td></tr>
+    <tr><td class="n">EMBER 불씨</td><td>흔들리며 떠오르고 식음</td></tr>
+    <tr><td class="n">STAR 별</td><td>반짝이는 십자</td></tr>
+  </table>
+  <p><b>그 밖의 부품</b></p>
+  <table>
+    <tr><th>부품</th><th>역할</th></tr>
+    <tr><td class="n">Bits 파편</td><td>조각·덩어리·물방울. 회전하며 튀고 멈추면 바닥에 놓임</td></tr>
+    <tr><td class="n">Lights 조명</td><td>번쩍 켜졌다가 서서히 꺼지는 빛</td></tr>
+    <tr><td class="n">Blazes 잔불</td><td>파편이 떨어진 자리에서 계속 불꽃을 만들어 냄</td></tr>
+    <tr><td class="n">sparkle / flare</td><td>별 모양 반짝임 / 8갈래 섬광</td></tr>
+    <tr><td class="n">band</td><td>기울어진 바닥 위의 링 — 바닥 충격파</td></tr>
+    <tr><td class="n">crystal</td><td>각진 얼음·수정 가시</td></tr>
+    <tr><td class="n">도형 (페인터)</td><td>점·선·원·링·호·빔·다각형·픽셀 셰이더·빛·텍스트·실루엣/외곽선</td></tr>
+  </table>
+
+  <h3>④ 출력 칸: 버퍼 2개 × 레이어 2개</h3>
+  <ul>
+    <li><b>색 버퍼</b> — 실제 픽셀. 불투명·디더·반투명 모두 가능.</li>
+    <li><b>빛 버퍼</b> — 위에 <b>더해지는</b> 발광. 뜨거운 것이 뜨거워 보이는 이유입니다. 10장의 <code>라이트</code> 체크박스가 이것을 켜고 끕니다.</li>
+    <li><b>뒤 레이어</b> — 캐릭터 뒤에 그릴 것 (바닥 링의 먼 쪽 절반, 그을음 등).</li>
+    <li><b>앞 레이어</b> — 캐릭터 앞에 그릴 것 (나머지 전부).</li>
+  </ul>
+
+  <h3>⑤ (선택) 캐릭터 연기와 합성</h3>
+  <ul>
+    <li><b>act</b> — 이펙트에 맞춘 캐릭터 동작: 예비 동작 → 공격 → 타격 순간 멈춤·흔들림 → 회복.</li>
+    <li><b>캐릭터 이펙트</b> — 화상·빙결처럼 캐릭터 실루엣의 색을 바꾸거나 외곽선을 두름. 10장의 <code>캐릭터</code> 체크박스.</li>
+    <li><b>chain</b> (moves 카테고리) — 이펙트끼리 잇기. 예: 충전 → 화염구 비행 → 폭발.</li>
+  </ul>
+
+  <h3>조립 예시: 폭발을 분해하면</h3>
+  <p>조립 원칙은 <b>단계로 나눈 안무</b>입니다: 충전 → 방출 → 확산 → 유지 → 붕괴 → 긴 잔향.</p>
+  <table>
+    <tr><th>단계</th><th>시점</th><th>쓰인 부품</th></tr>
+    <tr><td class="n">방출</td><td>0~0.08초</td><td>흰 원 플래시 0.06초, 흰 조명 0.08초</td></tr>
+    <tr><td class="n">충격</td><td>0~0.5초</td><td>공중 링 2개(0.34·0.22초), 바닥 band 링 0.5초 — 먼 쪽 절반은 뒤, 가까운 쪽은 앞 레이어</td></tr>
+    <tr><td class="n">확산</td><td>0~1초</td><td>FIRE 33개(절반가량은 식어 연기로), SPARK 80개, BRAND 9~14개</td></tr>
+    <tr><td class="n">땅의 반응</td><td>0~2.5초</td><td>돌 Bits 26개(멈추면 DUST를 일으킴), GRIT 자갈, 바닥을 따라 퍼지는 먼지 SMOKE, 먼지 기둥</td></tr>
+    <tr><td class="n">유지</td><td>1~3초</td><td>떠오르는 EMBER 40개, 파편이 떨어진 자리의 Blazes 잔불, 따뜻한 큰 조명 0.7초</td></tr>
+    <tr><td class="n">잔향</td><td>~5.4초</td><td>연기 기둥이 걷히고, 바닥 그을음이 하얗게 달았다가 검게 식으며 사라짐</td></tr>
+  </table>
+  <p><b>한 프레임을 그리는 순서:</b> 뒤 레이어(그을음 → 뒤쪽 파티클 → 잔불 → 바닥 링 먼 쪽) → <i>캐릭터</i> →
+  앞 레이어(바닥 링 가까운 쪽 → 돌 → 앞쪽 파티클 → 플래시 → 공중 링 → 조명).</p>
+  <div class="tip">
+    이 에디터의 기본 <code>Explosion</code>은 파티클 1종 + 플래시 + 연기를 슬라이더 9개로 조절합니다.
+    pixelfx 폭발은 부품 10여 종 수백 개를 단계별로 직접 배치한 것이라, 공통 슬라이더로 쪼개 놓지 않았습니다.
+  </div>
+
+  <h3>처음 만드는 사람을 위한 조립 순서</h3>
+  <ol>
+    <li><b>한 줄로 말하기</b> — "바닥의 수류탄이 흰빛으로 터지고, 돌이 튀고, 연기 기둥이 남는다".</li>
+    <li><b>명세서 쓰기</b> — 크기, 기준점(충돌 지점), 길이, 루프 여부, 색 옵션.</li>
+    <li><b>방식 고르기</b> — 반복되면 순수형, 한 번 터지고 끝나면 시뮬레이션형.</li>
+    <li><b>단계별 부품 배치</b> — "언제, 무엇을, 몇 개" 뿌릴지 위 표처럼 적기. 빠르게 터지고 천천히 사라지게.</li>
+    <li><b>레이어와 빛 나누기</b> — 캐릭터 뒤/앞을 나누고, 뜨거운 곳에는 빛을 겹치기.</li>
+    <li><b>렌더해서 보고 고치기</b> — 가장 나쁜 점 하나를 고치고 다시 렌더. 최소 3번.</li>
+  </ol>
+  <pre># pixelfx 저장소에서
+node tools/new.mjs explosions/my-blast     # 동작하는 기본 틀 생성
+node tools/render.mjs explosions/my-blast  # 컨택트 시트로 확인
+node tools/check.mjs explosions/my-blast   # 캔버스 넘침 · 루프 이음새 · 속도 검사
+
+# vfxgo 폴더에서: 만든 이펙트를 이 에디터에 반영
+node tools/build-pixelfx.mjs &lt;pixelfx 경로&gt;</pre>
+  <p>가장 작은 시뮬레이션형 예제 (pixelfx 문서의 "Spark pop"에 주석을 단 것):</p>
+  <pre>export function create(o) {
+  const C = fit(o.palette, 7), R = new Rng(o.seed);       // 색 램프 7단계, 시드 고정 난수
+  const ps = new Particles({ rng: R, ground: () =&gt; 0 });   // 파티클 상자 (바닥 y=0)
+  const lights = new Lights();
+  lights.add(0, -12, 40, C[4], 0.7, 0.4);                  // 반경 40 조명, 0.4초 동안 꺼짐
+  for (let i = 0; i &lt; 40; i++) {                           // 스파크 40개를 사방으로
+    const a = R.range(0, Math.PI * 2), sp = R.range(80, 260);
+    ps.spawn(P.SPARK, 0, -12, Math.cos(a) * sp, Math.sin(a) * sp - 60, R.range(0.2, 0.6));
+  }
+  let t = 0;
+  return {
+    update(dt) { t += dt; ps.update(dt); lights.update(dt); },   // 물리 진행
+    draw(p) {
+      if (t &lt; 0.12) sparkle(p, 0, -12, 9 * (1 - t / 0.12), C[5], C[3]);  // 처음 0.12초 섬광
+      ps.draw(p); lights.draw(p);
+    },
+  };
+}</pre>
+
+  <h3>좋아 보이게 하는 규칙</h3>
+  <ul>
+    <li>면을 채우지 말고 <b>1px 선·링·꼬리·스파크</b>로 만들고, 밝기는 빛 버퍼에 맡깁니다.</li>
+    <li><b>빛을 아끼지 않기</b> — 넓고 약한 빛 + 중심의 강한 빛 + 스파크마다 작은 빛.</li>
+    <li>연기·먼지·김은 <b>반투명하게 부풀며 옅어지게</b>. 체크무늬 디더로 연기를 그리지 않습니다.</li>
+    <li>스파크는 늘어나고 튀고, 파편은 구르다 멈추고, 불은 올라가며 식어 연기가 됩니다.</li>
+    <li>타격은 0.3~0.8초로 짧게, 큰 이펙트는 2~4초 여운. 바닥 링은 납작한 타원, 먼 쪽 절반은 캐릭터 뒤.</li>
+  </ul>
 </div>
 </div>
 
