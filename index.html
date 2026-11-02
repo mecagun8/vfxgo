@@ -845,7 +845,8 @@ node tools/build-pixelfx.mjs &lt;pixelfx 경로&gt;</pre>
     <tr><td class="n">Blazes 잔불</td><td>켜기/끄기, 개수, 수명, 세기</td></tr>
   </table>
   <ul>
-    <li><b>되는 이펙트:</b> 시뮬레이션형과, 그것을 이어 붙인 합성(moves). 순수형은 부품을 뿌리지 않고 시간으로 바로 계산해서 이 방식이 통하지 않습니다 — <code>pixelfx 옵션</code>과 <code>빛 세기</code>만 조절됩니다.</li>
+    <li><b>되는 이펙트:</b> 시뮬레이션형, 그것을 이어 붙인 합성(moves), 그리고 루프용 파티클을 쓰는 순수형(sci-fi의 Teleporter pad·Force field 등은 전 항목, 크리처의 Wisp·Frog 등은 켜기/끄기·개수·크기만).
+    파티클을 쓰지 않는 순수형은 조절할 부품이 없어 <code>pixelfx 옵션</code>과 <code>빛 세기</code>만 조절됩니다.</li>
     <li><b>안 되는 것:</b> 링·셰이더·원처럼 <b>도형으로 직접 그리는 부분</b>(예: 뉴크의 버섯구름 몸통·기둥, 바닥 링). 이건 이펙트 코드에 옵션이 있어야 바뀝니다.</li>
     <li><b>개수를 바꾸면</b> 남기거나 늘릴 입자를 시드로 뽑기 때문에, 같은 시드라도 모양이 원본과 조금 달라집니다. 같은 설정이면 결과는 항상 같습니다.</li>
     <li>불덩이가 식어 생기는 연기처럼 <b>파티클이 스스로 만드는 파티클</b>은 켜기/끄기와 개수만 따릅니다 (속도·수명·크기가 겹쳐 곱해지지 않게).</li>
@@ -1749,7 +1750,13 @@ const TUNE_FIELDS = {
 };
 const PARTICLE_ORDER = ["SPARK", "MOTE", "STREAK", "FLAKE", "VAPOUR", "DUST", "SMOKE", "FIRE", "BRAND", "GRIT", "EMBER", "STAR"];
 const isTunable = (k) => k.startsWith("P.") || k === "Lights" || k === "Bits" || k === "Blazes";
-const fieldsOf = (k) => (k.startsWith("P.") ? TUNE_FIELDS.particle : TUNE_FIELDS[k]);
+/* Swarm으로 그리는 이펙트(크리처 루프)는 위치를 이펙트가 직접 계산해서 속도·수명 배율이 통하지 않는다 */
+const swarmOnly = () => !!(isPfx(params.effect) && GUIDE[params.effect.slice(4)]?.swarm);
+const fieldsOf = (k) => (k.startsWith("P.")
+  ? (swarmOnly() ? TUNE_FIELDS.particle.filter(([f]) => f === "count" || f === "size") : TUNE_FIELDS.particle)
+  : TUNE_FIELDS[k]);
+/** 결정적 해시 → 0..1 (순수형 루프의 입자를 고를 때: 순서와 무관하게 입자마다 같은 값) */
+const hash01 = (a) => { const s = Math.sin(a * 12.9898 + 78.233) * 43758.5453; return s - Math.floor(s); };
 /** 배율 m만큼의 개수: 정수 부분 + 소수 부분은 확률 (시드 난수) */
 function copies(m) {
   if (m == null) return 1;
@@ -1795,6 +1802,51 @@ const jitter = (i) => (i ? 1 + (tuneRng() - 0.5) * 0.16 : 1);   // 복제본은 
       badd.call(this, c);
     }
   };
+  /* Ghosts (scifi 순수형 루프): 처음 그릴 때 입자 목록을 한 번 만들고 캐시한다.
+   * 그래서 만들 때가 아니라 그릴 때(at) 목록에 조절을 적용한다. 복제본은 루프 안 다른 시점에 태어나게 흩는다. */
+  if (PFX.Ghosts) {
+    const GP = PFX.Ghosts.prototype, gat = GP.at;
+    const tuned = (g) => {
+      const sig = JSON.stringify(pfxTune);
+      if (g._tsig === sig && g._tsrc === g.specs) return g._tspecs;
+      const out = [];
+      g.specs.forEach((s, i) => {
+        const T = pfxTune[KIND[s.k]];
+        if (!T) { out.push(s); return; }
+        if (T.on === false) return;
+        const m = T.count ?? 1, base = Math.floor(m), n = base + (hash01(i * 7.13 + s.seed) < m - base ? 1 : 0);
+        for (let c = 0; c < n; c++) {
+          const j = (q) => (c ? 1 + (hash01(i * 3.7 + c * 11.1 + q) - 0.5) * 0.16 : 1);
+          out.push({ ...s, vx: s.vx * (T.speed ?? 1) * j(1), vy: s.vy * (T.speed ?? 1) * j(2), life: s.life * (T.life ?? 1),
+            size: s.size * (T.size ?? 1), born: c ? (s.born + hash01(i * 5.3 + c) * g.D) % g.D : s.born });
+        }
+      });
+      g._tsig = sig; g._tsrc = g.specs; g._tspecs = out;
+      return out;
+    };
+    GP.at = function (t) {
+      if (!Object.keys(pfxTune).some((k) => k.startsWith("P."))) return gat.call(this, t);
+      const keep = this.specs;
+      this.specs = tuned(this);
+      try { return gat.call(this, t); } finally { this.specs = keep; }
+    };
+  }
+  /* Swarm (critters 순수형 루프): 매 프레임 이펙트가 계산한 위치로 add(k, x, y, vx, vy, age, life, ...)를 부른다.
+   * 켜기/끄기 · 개수 · 크기만 적용 (위치는 이펙트가 정하므로 속도·수명은 손댈 수 없다) */
+  if (PFX.Swarm) {
+    const SWP = PFX.Swarm.prototype, sadd = SWP.add;
+    SWP.add = function (k, x, y, vx, vy, age, life, col, size, flag, seed) {
+      const T = pfxTune[KIND[k]];
+      if (!T) return sadd.call(this, k, x, y, vx, vy, age, life, col, size, flag, seed);
+      if (T.on === false) return;
+      const h = hash01((seed ?? 0) * 1.37 + life * 91.7 + k), m = T.count ?? 1, base = Math.floor(m);
+      const n = base + (h < m - base ? 1 : 0), sz = (size ?? 1) * (T.size ?? 1);
+      for (let c = 0; c < n; c++) {
+        const ox = c ? (hash01(h * 31 + c) - 0.5) * 6 : 0, oy = c ? (hash01(h * 17 + c) - 0.5) * 6 : 0;
+        sadd.call(this, k, x + ox, y + oy, vx, vy, age, life, col, sz, flag, (seed ?? 0) + c * 17);
+      }
+    };
+  }
   const ZP = PFX.Blazes.prototype, zadd = ZP.add;
   ZP.add = function (x, y, life, power) {
     const T = pfxTune.Blazes;
@@ -1831,7 +1883,8 @@ function buildTuneUI() {
     return;
   }
   note.textContent = "이 이펙트가 쓰는 부품만 보입니다. 체크를 끄면 그 부품이 사라지고, 배율은 원래 값 대비입니다. "
-    + "링·셰이더처럼 도형으로 직접 그리는 부분은 여기서 바뀌지 않습니다. 개수를 바꾸면 시드가 같아도 모양이 조금 달라집니다.";
+    + "링·셰이더처럼 도형으로 직접 그리는 부분은 여기서 바뀌지 않습니다. 개수를 바꾸면 시드가 같아도 모양이 조금 달라집니다."
+    + (swarmOnly() ? " 이 이펙트는 입자 위치를 직접 계산하는 방식이라 파티클은 개수·크기만 조절됩니다." : "");
   for (const key of keys) {
     const T = pfxTune[key] || {}, info = PART_INFO[key] || [key];
     const wrap = document.createElement("div");
