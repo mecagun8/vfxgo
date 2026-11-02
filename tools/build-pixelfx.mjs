@@ -46,6 +46,9 @@ export { effects, categories } from "./src/fx/index.js";
 export { createFx, createFrame, clearFrame, composite, painterFor,
          drawActor, actorAlphaOf, stockActor,
          Particles, Lights, Bits, Blazes, P } from "./src/core/index.js";   // 부품 조절(가로채기)용
+// 순수형 루프가 파티클을 만드는 별도 입구 두 곳 (이것도 가로채야 조절이 먹는다)
+export { Ghosts } from "./src/fx/scifi/_lib.js";
+export { Swarm } from "./src/fx/critters/_lib.js";
 export const version = ${JSON.stringify(pkg.version)};
 export const commit = ${JSON.stringify(commit.slice(0, 7))};
 `;
@@ -99,9 +102,11 @@ const PAINTER = {
 function scan(code, coreNames) {
   const found = new Set();
   for (const k of PARTICLES) if (new RegExp(`\\bP\\.${k}\\b`).test(code)) found.add("P." + k);
-  if (/\bnew Bits\b/.test(code)) found.add("Bits");
-  if (/\bnew Lights\b/.test(code)) found.add("Lights");
-  if (/\bnew Blazes\b/.test(code)) found.add("Blazes");
+  // 상자를 만들기만 하고 add를 한 번도 안 부르는 경우가 있어(예: melee/scythe-reap의 Lights) 실제 add까지 확인한다
+  for (const cls of ["Bits", "Lights", "Blazes"]) {
+    const vars = [...code.matchAll(new RegExp(`(\\w+)\\s*=\\s*new ${cls}\\b`, "g"))].map((m) => m[1]);
+    if (vars.some((v) => new RegExp(`\\b${v}\\.add\\(`).test(code))) found.add(cls);
+  }
   for (const h of HELPERS) if (coreNames.has(h) && new RegExp(`\\b${h}\\(`).test(code)) found.add(h);
   for (const [m, key] of Object.entries(PAINTER)) if (new RegExp(`\\b\\w+\\.${m}\\(`).test(code)) found.add("p." + key);
   return found;
@@ -144,6 +149,7 @@ for (const cat of readdirSync(FX, { withFileTypes: true })) {
       back: /\bdrawBack\b/.test(code),
       act: /export\s+const\s+act\b/.test(code),
       body: /\bo\.actor\b|\bactorAlpha\b/.test(code),
+      swarm: /\bSwarm\b/.test(code),   // 위치를 이펙트가 직접 계산하는 파티클: 속도·수명 배율이 통하지 않음
       parts: [...parts],
       lib: [...lib],
       uses,
