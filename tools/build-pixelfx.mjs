@@ -44,7 +44,8 @@ try {
 const entry = `
 export { effects, categories } from "./src/fx/index.js";
 export { createFx, createFrame, clearFrame, composite, painterFor,
-         drawActor, actorAlphaOf, stockActor } from "./src/core/index.js";
+         drawActor, actorAlphaOf, stockActor,
+         Particles, Lights, Bits, Blazes, P } from "./src/core/index.js";   // 부품 조절(가로채기)용
 export const version = ${JSON.stringify(pkg.version)};
 export const commit = ${JSON.stringify(commit.slice(0, 7))};
 `;
