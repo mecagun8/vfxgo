@@ -80,6 +80,22 @@
     background: var(--panel2); color: var(--text); font-size: 11px; cursor: help;
   }
   .chip.lib { border-style: dashed; color: var(--dim); }
+  .chip.tunable { cursor: pointer; }
+  .chip.tuned { border-color: #7fd4ff; color: #7fd4ff; }
+  /* ---------- 부품 조절 ---------- */
+  #tuneNote { font-size: 11px; color: var(--dim); line-height: 1.5; margin-bottom: 6px; }
+  .tune { border: 1px solid var(--border); border-radius: 3px; margin-bottom: 4px; background: var(--panel2); }
+  .tune.flash { border-color: var(--accent); }
+  .tune .th { display: flex; align-items: center; gap: 6px; padding: 4px 6px; }
+  .tune .th input { accent-color: var(--accent); }
+  .tune .tn { flex: 1; cursor: pointer; font-size: 12px; }
+  .tune .tn::after { content: " ▸"; color: var(--dim); }
+  .tune.open .tn::after { content: " ▾"; }
+  .tune.off .tn { color: var(--dim); text-decoration: line-through; }
+  .tune .mod { font-size: 10px; color: #7fd4ff; }
+  .tune .tb { display: none; padding: 2px 8px 6px; }
+  .tune.open .tb { display: block; }
+  .tune .tb .row label { flex: 0 0 52px; font-size: 11px; }
   .chip.fx { cursor: pointer; border-color: var(--accent); color: var(--accent); }
   #gThumbs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
   #gThumbs figure { flex: 0 0 auto; margin: 0; text-align: center; cursor: pointer; }
@@ -324,10 +340,20 @@
     <h2>pixelfx 옵션</h2>
     <div id="pfxInfo"></div>
     <div class="row"><label>라이트 (발광)</label><input type="checkbox" id="pfxLight" checked><span class="note">빛 레이어를 합성</span></div>
+    <div class="row"><label>빛 세기</label><input type="range" id="pfxLightK" min="0" max="3" step="0.05" value="1"><span class="val" id="pfxLightKVal">1</span></div>
     <div class="row" id="pfxActorRow"><label>캐릭터</label><input type="checkbox" id="pfxActor"><span class="note">스탠드인 캐릭터 함께 그리기</span></div>
     <div id="pfxOpts"></div>
     <div class="btnRow" style="margin-top:6px">
       <button id="btnPfxReset">옵션 기본값으로</button>
+    </div>
+  </div>
+
+  <div class="group" id="tuneGroup" style="display:none">
+    <h2>부품 조절</h2>
+    <div id="tuneNote"></div>
+    <div id="tuneList"></div>
+    <div class="btnRow" style="margin-top:6px">
+      <button id="btnTuneReset">부품 조절 초기화</button>
     </div>
   </div>
 
@@ -655,6 +681,8 @@ love.graphics.draw(fx.img, fx.quads[i], x, y, 0, 1, 1, 32, 32)</pre>
     <tr><td class="n">라이트</td><td>발광(빛) 레이어 합성. 끄면 실루엣이 또렷해져 외곽선·AA가 깔끔합니다</td></tr>
     <tr><td class="n">캐릭터</td><td>화상·빙결 같은 캐릭터용 이펙트에서 스탠드인 캐릭터를 함께 그립니다. 켜면 시트에도 들어갑니다</td></tr>
     <tr><td class="n">frameCount</td><td>루프는 한 주기를 균등 분할(이음새 없음), 1회성은 처음~끝을 포함해 나눕니다. 고르면 길이에 맞춰 자동 설정</td></tr>
+    <tr><td class="n">부품 조절</td><td>이 이펙트가 쓰는 파티클·조명·파편·잔불을 켜고 끄거나 개수·속도·수명·크기 배율을 바꿉니다 (11장 끝 참고). 구성 카드의 칩을 눌러도 열립니다</td></tr>
+    <tr><td class="n">빛 세기</td><td>빛 레이어 전체의 세기 배율 (0~3)</td></tr>
     <tr><td class="n">구성 카드</td><td>미리보기 아래에 이 이펙트의 부품 · 대표 프레임 · 활동 그래프 (11장 참고). <code>접기</code>로 숨기면 미리보기가 커집니다</td></tr>
     <tr><td class="n">방향 / 클릭</td><td>← = 좌우 반전, ↓·↑ = 90° 회전. 미리보기를 클릭하면 이펙트 기준점이 그 자리로 옮겨집니다</td></tr>
   </table>
@@ -805,6 +833,24 @@ node tools/build-pixelfx.mjs &lt;pixelfx 경로&gt;</pre>
     },
   };
 }</pre>
+
+  <h3>에디터에서 부품 조절하기</h3>
+  <p>오른쪽 <code>부품 조절</code> 묶음은 지금 이펙트가 쓰는 부품 중 <b>공통으로 조절할 수 있는 것</b>만 보여 줍니다
+  (구성 카드의 칩을 눌러도 해당 부품이 열립니다). 부품 이름을 누르면 배율 슬라이더가 펼쳐집니다.</p>
+  <table>
+    <tr><th>부품</th><th>조절 항목</th></tr>
+    <tr><td class="n">파티클 12종</td><td>켜기/끄기, 개수 ×0~3, 속도 ×0.25~3, 수명 ×0.25~3, 크기 ×0.25~3</td></tr>
+    <tr><td class="n">Lights 조명</td><td>켜기/끄기, 밝기 ×0~3, 반경 ×0.25~3</td></tr>
+    <tr><td class="n">Bits 파편</td><td>켜기/끄기, 개수, 속도, 수명</td></tr>
+    <tr><td class="n">Blazes 잔불</td><td>켜기/끄기, 개수, 수명, 세기</td></tr>
+  </table>
+  <ul>
+    <li><b>되는 이펙트:</b> 시뮬레이션형과, 그것을 이어 붙인 합성(moves). 순수형은 부품을 뿌리지 않고 시간으로 바로 계산해서 이 방식이 통하지 않습니다 — <code>pixelfx 옵션</code>과 <code>빛 세기</code>만 조절됩니다.</li>
+    <li><b>안 되는 것:</b> 링·셰이더·원처럼 <b>도형으로 직접 그리는 부분</b>(예: 뉴크의 버섯구름 몸통·기둥, 바닥 링). 이건 이펙트 코드에 옵션이 있어야 바뀝니다.</li>
+    <li><b>개수를 바꾸면</b> 남기거나 늘릴 입자를 시드로 뽑기 때문에, 같은 시드라도 모양이 원본과 조금 달라집니다. 같은 설정이면 결과는 항상 같습니다.</li>
+    <li>불덩이가 식어 생기는 연기처럼 <b>파티클이 스스로 만드는 파티클</b>은 켜기/끄기와 개수만 따릅니다 (속도·수명·크기가 겹쳐 곱해지지 않게).</li>
+    <li>부품 조절은 <code>JSON 저장</code>에 함께 저장되고, 내보내는 시트에도 그대로 들어갑니다.</li>
+  </ul>
 
   <h3>좋아 보이게 하는 규칙</h3>
   <ul>
@@ -1222,6 +1268,7 @@ function isPfx(effect) { return typeof effect === "string" && effect.startsWith(
 function pfxMod(effect) { return PFX && isPfx(effect) ? PFX.effects[effect.slice(4)] || null : null; }
 params.pfxLight = true;    // 빛(light) 레이어 합성
 params.pfxActor = false;   // 스탠드인 캐릭터를 함께 그릴지 (캐릭터가 있는 이펙트만)
+params.pfxLightK = 1;      // 빛 레이어 세기 배율 (라이트가 켜져 있을 때)
 let pfxOptions = {};       // 사용자가 바꾼 이펙트 옵션 (기본값과 다른 것만)
 let pfxRamp = null;        // "pixelfx 원본 색" 팔레트일 때 프레임에서 뽑은 6단계 램프
 
@@ -1301,6 +1348,7 @@ function bakePfxFrames(p) {
   if (p.direction === 180) o.flip = true;
   else if (p.direction === 90) o.angle = Math.PI / 2;
   else if (p.direction === 270) o.angle = -Math.PI / 2;
+  beginTune(o.seed);
   const inst = PFX.createFx(mod, o);
   const actor = p.pfxActor && meta.actor ? inst.options.actor || PFX.stockActor() : null;
   const frame = PFX.createFrame(w, h);
@@ -1318,7 +1366,7 @@ function bakePfxFrames(p) {
     } else {
       inst.draw(frame);
     }
-    list.push(PFX.composite(frame, new Uint8ClampedArray(w * h * 4), null, p.pfxLight ? 1 : 0));
+    list.push(PFX.composite(frame, new Uint8ClampedArray(w * h * 4), null, p.pfxLight ? p.pfxLightK : 0));
   }
 
   let ramp;
@@ -1545,10 +1593,14 @@ function buildGuide() {
     const chip = (key, viaLib) => {
       const info = PART_INFO[key] || [key, "paint", ""];
       const s = document.createElement("span");
-      s.className = "chip" + (viaLib ? " lib" : "");
+      const tunable = isTunable(key) && !!PFX.Particles;
+      s.className = "chip" + (viaLib ? " lib" : "") + (tunable ? " tunable" : "") + (isTuned(key) ? " tuned" : "");
+      s.dataset.key = key;
       s.textContent = info[0];
       const html = `<b>${info[0]}</b>${info[2]}` +
-        (viaLib ? `<br><span class="rng">같은 카테고리의 공용 도우미(_lib.js)를 거쳐 쓰입니다.</span>` : "");
+        (viaLib ? `<br><span class="rng">같은 카테고리의 공용 도우미(_lib.js)를 거쳐 쓰입니다.</span>` : "") +
+        (tunable ? `<br><span class="rng">눌러서 오른쪽 '부품 조절'에서 켜기/끄기·배율 조절</span>` : "");
+      if (tunable) s.addEventListener("click", () => { hideTip(); openTune(key); });
       s.addEventListener("mouseenter", (ev) => rawTip(html, ev));
       s.addEventListener("mousemove", (ev) => placeTip(ev));
       s.addEventListener("mouseleave", hideTip);
@@ -1582,6 +1634,7 @@ function buildGuide() {
   if (params.direction === 180) o.flip = true;
   else if (params.direction === 90) o.angle = Math.PI / 2;
   else if (params.direction === 270) o.angle = -Math.PI / 2;
+  beginTune(o.seed);
   const inst = PFX.createFx(mod, o);
   const actor = params.pfxActor && meta.actor ? inst.options.actor || PFX.stockActor() : null;
   const frame = PFX.createFrame(w, h);
@@ -1618,7 +1671,7 @@ function buildGuide() {
     if (thumbAt.has(i)) {
       const c = document.createElement("canvas");
       c.width = w; c.height = h;
-      c.getContext("2d").putImageData(new ImageData(PFX.composite(frame, new Uint8ClampedArray(w * h * 4), null, params.pfxLight ? 1 : 0), w, h), 0, 0);
+      c.getContext("2d").putImageData(new ImageData(PFX.composite(frame, new Uint8ClampedArray(w * h * 4), null, params.pfxLight ? params.pfxLightK : 0), w, h), 0, 0);
       thumbs.push({ c, t: target });
     }
   }
@@ -1673,6 +1726,161 @@ function buildGuide() {
   cx.textAlign = "right"; cx.fillText(+D.toFixed(2) + "s", W - 6, 11); cx.textAlign = "left";
 
   if (isPfx(params.effect)) setupCanvases();   // 카드 높이만큼 미리보기 크기를 다시 맞춘다
+}
+
+/* =====================================================================
+ * 부품 조절 — pixelfx의 부품이 생기는 입구(Particles.spawn, Lights.add, Bits.add,
+ * Blazes.add)를 가로채 켜기/끄기와 배율을 건다. 시뮬레이션형 이펙트 전부에 공통으로 통한다.
+ *  · 조절하지 않은 부품은 그대로 통과 → 아무것도 안 바꾸면 원본과 픽셀 단위로 같다
+ *  · 개수 배율은 시드에서 나온 난수로 뽑아 결정적(같은 설정 = 같은 결과)
+ *  · 파티클이 시뮬레이션 도중 스스로 만드는 것(불덩이가 식어 생기는 연기, 불붙은 파편의 불꼬리)은
+ *    켜기/끄기와 개수만 따르고 속도·수명·크기는 곱하지 않는다 (배율이 겹쳐 곱해지지 않게)
+ *  · 도형으로 직접 그리는 부분(링·셰이더·원 등)은 여기서 조절되지 않는다
+ * ===================================================================== */
+let pfxTune = {};          // { "P.SMOKE": { on, count, speed, life, size }, Lights: {...}, ... } — 바꾼 부품만
+let tuneRng = mulberry32(1);
+function beginTune(seed) { tuneRng = mulberry32(((seed >>> 0) ^ 0x9e3779b9) >>> 0); }
+
+const TUNE_FIELDS = {
+  particle: [["count", "개수", 0, 3], ["speed", "속도", 0.25, 3], ["life", "수명", 0.25, 3], ["size", "크기", 0.25, 3]],
+  Lights: [["k", "밝기", 0, 3], ["r", "반경", 0.25, 3]],
+  Bits: [["count", "개수", 0, 3], ["speed", "속도", 0.25, 3], ["life", "수명", 0.25, 3]],
+  Blazes: [["count", "개수", 0, 3], ["life", "수명", 0.25, 3], ["power", "세기", 0.25, 3]],
+};
+const PARTICLE_ORDER = ["SPARK", "MOTE", "STREAK", "FLAKE", "VAPOUR", "DUST", "SMOKE", "FIRE", "BRAND", "GRIT", "EMBER", "STAR"];
+const isTunable = (k) => k.startsWith("P.") || k === "Lights" || k === "Bits" || k === "Blazes";
+const fieldsOf = (k) => (k.startsWith("P.") ? TUNE_FIELDS.particle : TUNE_FIELDS[k]);
+/** 배율 m만큼의 개수: 정수 부분 + 소수 부분은 확률 (시드 난수) */
+function copies(m) {
+  if (m == null) return 1;
+  const base = Math.floor(m);
+  return base + (tuneRng() < m - base ? 1 : 0);
+}
+const jitter = (i) => (i ? 1 + (tuneRng() - 0.5) * 0.16 : 1);   // 복제본은 ±8% 흩어 겹치지 않게
+
+(function installTune() {
+  if (!PFX || !PFX.Particles) return;
+  const KIND = {};
+  for (const [n, v] of Object.entries(PFX.P)) KIND[v] = "P." + n;
+  let inUpdate = 0;
+  const PP = PFX.Particles.prototype, upd = PP.update, spawn = PP.spawn;
+  PP.update = function (dt) { inUpdate++; try { return upd.call(this, dt); } finally { inUpdate--; } };
+  PP.spawn = function (k, x, y, vx, vy, life, col, size, delay, flag) {
+    const T = pfxTune[KIND[k]];
+    if (!T) return spawn.call(this, k, x, y, vx, vy, life, col, size, delay, flag);
+    if (T.on === false) return;
+    const outer = !inUpdate, n = copies(T.count);
+    const sp = outer ? T.speed ?? 1 : 1, lf = outer ? T.life ?? 1 : 1, sz = outer ? T.size ?? 1 : 1;
+    for (let i = 0; i < n; i++)
+      spawn.call(this, k, x, y, vx * sp * jitter(i), vy * sp * jitter(i), life * lf, col, (size ?? 1) * sz, delay, flag);
+  };
+  const LP = PFX.Lights.prototype, ladd = LP.add;
+  LP.add = function (x, y, r, color, k, life) {
+    const T = pfxTune.Lights;
+    if (!T) return ladd.call(this, x, y, r, color, k, life);
+    if (T.on === false) return;
+    return ladd.call(this, x, y, r * (T.r ?? 1), color, k * (T.k ?? 1), life);
+  };
+  const BP = PFX.Bits.prototype, badd = BP.add;
+  BP.add = function (b) {
+    const T = pfxTune.Bits;
+    if (!T) return badd.call(this, b);
+    if (T.on === false) return;
+    const n = copies(T.count), sp = T.speed ?? 1, lf = T.life ?? 1;
+    for (let i = 0; i < n; i++) {
+      const c = { ...b };
+      if (c.vx != null) c.vx *= sp * jitter(i);
+      if (c.vy != null) c.vy *= sp * jitter(i);
+      if (c.life != null) c.life *= lf;
+      badd.call(this, c);
+    }
+  };
+  const ZP = PFX.Blazes.prototype, zadd = ZP.add;
+  ZP.add = function (x, y, life, power) {
+    const T = pfxTune.Blazes;
+    if (!T) return zadd.call(this, x, y, life, power);
+    if (T.on === false) return;
+    const n = copies(T.count);
+    for (let i = 0; i < n; i++)
+      zadd.call(this, x + (i ? (tuneRng() - 0.5) * 4 : 0), y, life * (T.life ?? 1), power * (T.power ?? 1));
+  };
+})();
+
+/** 이 이펙트에서 조절할 수 있는 부품: 구성 분석의 부품 중 가로챌 수 있는 것 (합성은 구성 이펙트까지 모아서) */
+function tunableKeys(id, seen = new Set()) {
+  if (seen.has(id)) return [];
+  seen.add(id);
+  const g = GUIDE[id];
+  if (!g) return [];
+  const out = new Set([...g.parts, ...g.lib].filter(isTunable));
+  for (const u of g.uses) for (const k of tunableKeys(u, seen)) out.add(k);
+  const rank = (k) => (k.startsWith("P.") ? PARTICLE_ORDER.indexOf(k.slice(2)) : 20 + ["Lights", "Bits", "Blazes"].indexOf(k));
+  return [...out].sort((a, b) => rank(a) - rank(b));
+}
+const isTuned = (k) => !!pfxTune[k];
+
+function buildTuneUI() {
+  const box = $("tuneList"), note = $("tuneNote");
+  box.innerHTML = "";
+  if (!isPfx(params.effect) || !PFX || !PFX.Particles) return;
+  const id = params.effect.slice(4), g = GUIDE[id], keys = tunableKeys(id);
+  if (!keys.length) {
+    note.textContent = g && g.type === "pure"
+      ? "이 이펙트는 순수형(시간 t로 바로 계산)이라 공통으로 조절할 부품이 없습니다. 위의 pixelfx 옵션과 빛 세기만 조절됩니다."
+      : "이 이펙트에는 공통으로 조절할 부품이 없습니다. 도형으로 직접 그리는 부분은 위의 pixelfx 옵션으로만 바뀝니다.";
+    return;
+  }
+  note.textContent = "이 이펙트가 쓰는 부품만 보입니다. 체크를 끄면 그 부품이 사라지고, 배율은 원래 값 대비입니다. "
+    + "링·셰이더처럼 도형으로 직접 그리는 부분은 여기서 바뀌지 않습니다. 개수를 바꾸면 시드가 같아도 모양이 조금 달라집니다.";
+  for (const key of keys) {
+    const T = pfxTune[key] || {}, info = PART_INFO[key] || [key];
+    const wrap = document.createElement("div");
+    wrap.className = "tune" + (T.on === false ? " off" : "");
+    wrap.dataset.key = key;
+    const head = document.createElement("div"), cb = document.createElement("input"),
+      name = document.createElement("span"), mod = document.createElement("span");
+    head.className = "th";
+    cb.type = "checkbox"; cb.checked = T.on !== false; cb.title = "이 부품 켜기/끄기";
+    name.className = "tn"; name.textContent = info[0]; name.title = info[2] || "";
+    mod.className = "mod";
+    head.append(cb, name, mod);
+    const body = document.createElement("div");
+    body.className = "tb";
+    const refresh = () => {
+      const cur = pfxTune[key];
+      if (cur && cur.on !== false && fieldsOf(key).every(([f]) => (cur[f] ?? 1) === 1)) delete pfxTune[key];
+      mod.textContent = isTuned(key) ? "수정됨" : "";
+      wrap.classList.toggle("off", pfxTune[key]?.on === false);
+      document.querySelectorAll(`#gParts .chip[data-key="${key}"]`).forEach((c) => c.classList.toggle("tuned", isTuned(key)));
+      startSim();
+    };
+    const edit = (f, v) => { (pfxTune[key] ||= {})[f] = v; refresh(); };
+    cb.addEventListener("change", () => edit("on", cb.checked ? undefined : false));
+    name.addEventListener("click", () => wrap.classList.toggle("open"));
+    for (const [f, label, lo, hi] of fieldsOf(key)) {
+      const row = document.createElement("div"), lab = document.createElement("label"),
+        inp = document.createElement("input"), val = document.createElement("span");
+      row.className = "row";
+      lab.textContent = label;
+      inp.type = "range"; inp.min = lo; inp.max = hi; inp.step = 0.05; inp.value = T[f] ?? 1;
+      val.className = "val"; val.textContent = "×" + (T[f] ?? 1);
+      inp.addEventListener("input", () => { val.textContent = "×" + inp.value; edit(f, parseFloat(inp.value)); });
+      row.append(lab, inp, val);
+      body.appendChild(row);
+    }
+    mod.textContent = isTuned(key) ? "수정됨" : "";
+    wrap.append(head, body);
+    box.appendChild(wrap);
+  }
+}
+
+/** 구성 카드의 칩을 누르면 해당 부품 조절을 펼쳐 보여 준다 */
+function openTune(key) {
+  const el = document.querySelector(`#tuneList .tune[data-key="${key}"]`);
+  if (!el) return;
+  el.classList.add("open", "flash");
+  el.scrollIntoView({ block: "center", behavior: "smooth" });
+  setTimeout(() => el.classList.remove("flash"), 900);
 }
 
 /* =====================================================================
@@ -2086,8 +2294,11 @@ function syncModeUI() {
   $("palette").querySelector('option[value="pfx"]').hidden = !pfx;
   $("pfxLight").checked = params.pfxLight;
   $("pfxActor").checked = params.pfxActor;
+  $("pfxLightK").value = params.pfxLightK;
+  $("pfxLightKVal").textContent = params.pfxLightK;
   $("pfxGuide").style.display = pfx && PFX ? "" : "none";
-  if (pfx) buildPfxUI();
+  $("tuneGroup").style.display = pfx && PFX ? "" : "none";
+  if (pfx) { buildPfxUI(); buildTuneUI(); }
 }
 function setSlider(id, v) {
   params[id] = v;
@@ -2101,6 +2312,7 @@ function setSlider(id, v) {
 function selectPfx() {
   const meta = pfxMod(params.effect).meta, D = meta.duration || 1;
   pfxOptions = {};
+  pfxTune = {};
   params.originX = params.originY = null;
   params.direction = null;
   $("direction").value = "";
@@ -2404,7 +2616,7 @@ $("btnExportPNG").addEventListener("click", exportSheet);
 /* ---------- JSON 프리셋 저장/불러오기 ---------- */
 $("btnExportJSON").addEventListener("click", () => {
   const data = { ...params, customRampColors };
-  if (isPfx(params.effect)) data.pfxOptions = pfxOptions;
+  if (isPfx(params.effect)) { data.pfxOptions = pfxOptions; data.pfxTune = pfxTune; }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -2431,6 +2643,8 @@ $("jsonFile").addEventListener("change", (e) => {
         if (k in data) params[k] = data[k];
       }
       pfxOptions = isPfx(params.effect) && data.pfxOptions ? { ...data.pfxOptions } : {};
+      pfxTune = isPfx(params.effect) && data.pfxTune ? JSON.parse(JSON.stringify(data.pfxTune)) : {};
+      if (typeof params.pfxLightK !== "number") params.pfxLightK = 1;
       if (!isPfx(params.effect) && params.palette === "pfx") params.palette = "classic";
       /* UI 동기화 */
       $("effectPreset").value = params.effect;
@@ -2521,6 +2735,10 @@ const TIPS = {
     d: () => isPfx(params.effect)
       ? "pixelfx 원본 색은 이펙트의 원래 색을 그대로 씁니다. 다른 팔레트를 고르면 밝기 순으로 그 6색에 다시 칠하고, 반투명 부분은 디더로 바꿔 6색만 남깁니다."
       : "수명에 따라 건너뛸 색상 램프. 색을 부드럽게 섞지 않고 단계별로 전환하는 것이 픽셀아트 룩의 핵심입니다. Custom을 고르면 6칸을 직접 지정합니다." },
+  pfxLightK: { t: "빛 세기", r: "0 ~ 3배",
+    d: "빛 레이어 전체의 세기 배율입니다. 1이 원본, 0이면 빛이 없고, 올리면 불빛·마법 광원이 더 강하게 번집니다. 라이트 체크가 켜져 있을 때만 적용됩니다." },
+  btnTuneReset: { t: "부품 조절 초기화",
+    d: "이 이펙트의 부품 조절(켜기/끄기·배율)을 모두 원래대로 되돌립니다. pixelfx 옵션과 팔레트·후처리는 그대로 둡니다." },
   pfxLight: { t: "라이트 (발광)",
     d: "pixelfx 이펙트의 빛 레이어(불빛, 마법 광원의 번짐)를 합성합니다. 끄면 실루엣만 남아 외곽선·AA가 또렷해집니다." },
   pfxActor: { t: "캐릭터",
@@ -2710,6 +2928,12 @@ if (PFX) {
     sel.appendChild(g);
   }
   $("pfxLight").addEventListener("change", () => { params.pfxLight = $("pfxLight").checked; startSim(); });
+  $("pfxLightK").addEventListener("input", () => {
+    params.pfxLightK = parseFloat($("pfxLightK").value);
+    $("pfxLightKVal").textContent = params.pfxLightK;
+    startSim();
+  });
+  $("btnTuneReset").addEventListener("click", () => { pfxTune = {}; buildTuneUI(); startSim(); });
   $("pfxActor").addEventListener("change", () => { params.pfxActor = $("pfxActor").checked; startSim(); });
   $("btnPfxReset").addEventListener("click", () => { pfxOptions = {}; buildPfxUI(); startSim(); });
   $("gGraph").addEventListener("click", (e) => {
