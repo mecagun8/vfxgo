@@ -10,12 +10,15 @@
 설치할 것은 없습니다. `index.html`을 브라우저로 열면 됩니다. `vendor/pixelfx.js`가 `index.html` 옆에 있어야
 pixelfx 이펙트가 목록에 나타납니다.
 
+pixelfx 이펙트를 고르면 미리보기 아래에 **이 이펙트의 구성** 카드가 나옵니다. 쓰인 부품, 대표 프레임, 활동 그래프가 들어 있고,
+조립 방법 설명은 에디터의 📖 매뉴얼 11장에 있습니다.
+
 ## pixelfx 업데이트
 
 ```bash
 git clone https://github.com/mecagun8/pixelfx ../pixelfx
 (cd ../pixelfx && npm ci)
-node tools/build-pixelfx.mjs ../pixelfx
+node tools/build-pixelfx.mjs ../pixelfx   # vendor/pixelfx.js와 구성 분석 vendor/pixelfx-guide.js를 함께 만듭니다
 ```
 
 ## 배포
